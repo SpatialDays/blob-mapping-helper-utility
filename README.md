@@ -9,29 +9,48 @@ Configuration file example:
 {
   "blob_mounting_configurations": [
     {
-      "storage_account_name": "oseoinfrastagingstrgacc",
-      "storage_account_url": "https://oseoinfrastagingstrgacc.blob.core.windows.net/",
-      "container_name": "heightstore-dsm1m-raw",
-      "mount_point": "/mnt/heightstore-dsm1m-raw"
+      "storage_account_name": "examplestagingstrgacc",
+      "storage_account_url": "https://examplestagingstrgacc.blob.core.windows.net/",
+      "container_name": "heightstore-example1-raw",
+      "mount_point": "/mnt/heightstore-example1-raw"
     },
     {
-      "storage_account_name": "oseoinfrastagingstrgacc",
-      "storage_account_url": "https://oseoinfrastagingstrgacc.blob.core.windows.net/",
-      "container_name": "heightstore-dsm25cm-raw",
-      "mount_point": "/mnt/heightstore-dsm25cm-raw"
+      "storage_account_name": "examplestagingstrgacc",
+      "storage_account_url": "https://examplestagingstrgacc.blob.core.windows.net/",
+      "container_name": "heightstore-example2-raw",
+      "mount_point": "/mnt/heightstore-example2-raw"
     },
     {
-      "storage_account_name": "oseoinfrastagingstrgacc",
-      "storage_account_url": "https://oseoinfrastagingstrgacc.blob.core.windows.net/",
-      "container_name": "heightstore-dtm1m-raw",
-      "mount_point": "/mnt/heightstore-dtm1m-raw"
+      "storage_account_name": "examplestagingstrgacc",
+      "storage_account_url": "https://examplestagingstrgacc.blob.core.windows.net/",
+      "container_name": "heightstore-example3-raw",
+      "mount_point": "/mnt/heightstore-example3-raw"
     },
     {
-      "storage_account_name": "oseoinfrastagingstrgacc",
-      "storage_account_url": "https://oseoinfrastagingstrgacc.blob.core.windows.net/",
-      "container_name": "rss-rgbi25cm16bittiff-raw",
-      "mount_point": "/mnt/rss-rgbi25cm16bittiff-raw"
+      "storage_account_name": "examplestagingstrgacc",
+      "storage_account_url": "https://examplestagingstrgacc.blob.core.windows.net/",
+      "container_name": "example-container-raw",
+      "mount_point": "/mnt/example-container-raw"
     }
   ]
 }
+```
+
+## How to use
+
+```python
+from blob_mapping_utility import BlobMappingUtility
+json_config_file = "blob_mapping_config.json"
+
+# read the file into a dictionary
+with open(json_config_file) as json_file:
+    config = json.load(json_file)["blob_mounting_configurations"]
+
+# create the utility object
+blob_mapping_utility = BlobMappingUtility(config)
+
+filepath1 = "/mnt/example-container-raw/cool_picture.png
+blob_url = blob_mapping_utility.get_url_from_mounted_filepath(mount_point) # -> https://examplestagingstrgacc.blob.core.windows.net/example-container-raw/cool_picture.png
+
+filepath2 = get_mounted_filepath_from_url(blob_url) # -> /mnt/example-container-raw/cool_picture.png
 ```
