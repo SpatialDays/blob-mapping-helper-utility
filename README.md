@@ -39,7 +39,7 @@ Configuration file example:
 ## How to use
 
 ```python
-from blob_mapping_utility import BlobMappingUtility
+from blob_mounting_helper_utility import BlobMappingUtility
 json_config_file = "blob_mapping_config.json"
 
 # read the file into a dictionary
@@ -50,7 +50,7 @@ with open(json_config_file) as json_file:
 blob_mapping_utility = BlobMappingUtility(config)
 
 filepath1 = "/mnt/example-container-raw/cool_picture.png
-blob_url = blob_mapping_utility.get_url_from_mounted_filepath(mount_point) # -> https://examplestagingstrgacc.blob.core.windows.net/example-container-raw/cool_picture.png
+blob_url = blob_mapping_utility.get_url_from_mounted_filepath(filepath1) # -> https://examplestagingstrgacc.blob.core.windows.net/example-container-raw/cool_picture.png
 
 filepath2 = get_mounted_filepath_from_url(blob_url) # -> /mnt/example-container-raw/cool_picture.png
 ```
