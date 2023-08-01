@@ -21,7 +21,7 @@ setup(
     long_description_content_type="text/markdown",
     long_description=long_description,
     packages=find_packages(),
-    install_requires=[''],
+    install_requires=['azure-storage-blob==12.17.0'],
     keywords=['python', 'azure', 'blob', 'mount'],
     classifiers=[
         "Development Status :: 1 - Planning",

@@ -1,10 +1,14 @@
 import os.path
 from typing import Tuple, List
 from urllib.parse import urlparse, urljoin
+from azure.storage.blob import BlobClient
 
 
 class BlobMappingUtility:
-    def __init__(self, blob_mounting_configurations_list: List):
+    downloaded_paths = []
+    uploaded_paths = []
+
+    def __init__(self, blob_mounting_configurations_list: List, azure_storage_account_key: str = None):
         if blob_mounting_configurations_list is None:
             raise ValueError("blob_mounting_configurations_list cannot be None")
 
@@ -14,6 +18,7 @@ class BlobMappingUtility:
                 raise ValueError(f"Invalid blob_mounting_configurations_list: {blob_mounting_configurations_list}")
 
         self.blob_mounting_configurations_list = blob_mounting_configurations_list
+        self.azure_storage_account_key = azure_storage_account_key
 
     @staticmethod
     def _get_details_from_blob_url(url: str) -> Tuple[str, str, str]:
@@ -84,3 +89,27 @@ class BlobMappingUtility:
                 return url
 
         raise ValueError(f"Folder path {folder_path} is not a mounted folder")
+
+    def download_blob(self, url: str) -> None:
+        blob_client = BlobClient.from_blob_url(url, credential=self.azure_storage_account_key)
+        download_file_path = self.get_mounted_filepath_from_url(url)
+        if not os.path.exists(os.path.dirname(download_file_path)):
+            os.makedirs(os.path.dirname(download_file_path), exist_ok=True)
+            with open(download_file_path, "wb") as download_file:
+                download_file.write(blob_client.download_blob().readall())
+        self.downloaded_paths.append(download_file_path)
+
+    def upload_blob(self, file_path: str) -> None:
+        blob_client = BlobClient.from_blob_url(self.get_url_from_mounted_filepath(file_path),
+                                               credential=self.azure_storage_account_key)
+        with open(file_path, "rb") as data:
+            blob_client.upload_blob(data)
+        self.uploaded_paths.append(file_path)
+
+    def cleanup_files(self) -> None:
+        for file_path in self.downloaded_paths:
+            os.remove(file_path)
+        for file_path in self.uploaded_paths:
+            os.remove(file_path)
+        self.downloaded_paths = []
+        self.uploaded_paths = []
