@@ -4,6 +4,7 @@ logger = logging.getLogger(__name__)
 from typing import Tuple, List
 from urllib.parse import urlparse, urljoin
 from azure.storage.blob import BlobClient
+logging.getLogger('azure').setLevel(logging.WARNING)
 
 
 class BlobMappingUtility:
@@ -123,6 +124,8 @@ class BlobMappingUtility:
             # remove the directory if it is empty
             try:
                 os.rmdir(os.path.dirname(file_path))
+                if file_path in self.uploaded_paths:
+                    self.uploaded_paths.remove(file_path)
             except OSError:
                 pass
         for file_path in self.uploaded_paths:
