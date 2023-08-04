@@ -4,7 +4,7 @@ logger = logging.getLogger(__name__)
 from typing import Tuple, List
 from urllib.parse import urlparse, urljoin
 from azure.storage.blob import BlobClient
-logging.getLogger('azure').setLevel(logging.WARNING)
+# logging.getLogger('azure').setLevel(logging.WARNING)
 
 
 class BlobMappingUtility:
@@ -94,6 +94,8 @@ class BlobMappingUtility:
         raise ValueError(f"Folder path {folder_path} is not a mounted folder")
 
     def download_blob(self, url: str) -> None:
+        if not self.azure_storage_account_key:
+            raise ValueError("azure_storage_account_key is required for downloading blobs")
         logger.debug(f"Downloading blob from {url}")
         blob_client = BlobClient.from_blob_url(url, credential=self.azure_storage_account_key)
         download_file_path = self.get_mounted_filepath_from_url(url)
@@ -107,6 +109,8 @@ class BlobMappingUtility:
             logger.debug(f"Blob already downloaded to {download_file_path}")
 
     def upload_blob(self, file_path: str) -> None:
+        if not self.azure_storage_account_key:
+            raise ValueError("azure_storage_account_key is required for uploading blobs")
         logger.debug(f"Uploading blob from {file_path}")
         blob_client = BlobClient.from_blob_url(self.get_url_from_mounted_filepath(file_path),
                                                credential=self.azure_storage_account_key)
@@ -120,7 +124,10 @@ class BlobMappingUtility:
         logger.debug("Cleaning up files")
         for file_path in self.downloaded_paths:
             logger.debug(f"Removing downloaded file {file_path}")
-            os.remove(file_path)
+            try:
+                os.remove(file_path)
+            except OSError:
+                pass
             # remove the directory if it is empty
             try:
                 os.rmdir(os.path.dirname(file_path))
@@ -130,7 +137,10 @@ class BlobMappingUtility:
                 pass
         for file_path in self.uploaded_paths:
             logger.debug(f"Removing uploaded file {file_path}")
-            os.remove(file_path)
+            try:
+                os.remove(file_path)
+            except OSError:
+                pass
             # remove the directory if it is empty
             try:
                 os.rmdir(os.path.dirname(file_path))
