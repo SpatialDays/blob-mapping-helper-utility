@@ -4,6 +4,8 @@ logger = logging.getLogger(__name__)
 from typing import Tuple, List
 from urllib.parse import urlparse, urljoin
 from azure.storage.blob import BlobClient
+from azure.core.exceptions import ResourceModifiedError
+from time import sleep
 # logging.getLogger('azure').setLevel(logging.WARNING)
 
 
@@ -96,17 +98,33 @@ class BlobMappingUtility:
     def download_blob(self, url: str) -> None:
         if not self.azure_storage_account_key:
             raise ValueError("azure_storage_account_key is required for downloading blobs")
+        
         logger.debug(f"Downloading blob from {url}")
         blob_client = BlobClient.from_blob_url(url, credential=self.azure_storage_account_key)
         download_file_path = self.get_mounted_filepath_from_url(url)
-        if not os.path.exists(download_file_path):
-            os.makedirs(os.path.dirname(download_file_path), exist_ok=True)
-            with open(download_file_path, "wb") as download_file:
-                download_file.write(blob_client.download_blob().readall())
-            logger.debug(f"Downloaded blob to {download_file_path}")
-            self.downloaded_paths.append(download_file_path)
-        else:
+        
+        if os.path.exists(download_file_path):
             logger.debug(f"Blob already downloaded to {download_file_path}")
+            return
+
+        # Attempt to fetch blob's properties multiple times.
+        for attempt in range(10):
+            try:
+                blob_client.get_blob_properties()
+                break  # If successful, break out of the loop
+            except ResourceModifiedError:
+                if attempt == 9:  # If it's the last attempt
+                    raise ResourceModifiedError
+                logger.warning(f"Failed to fetch blob properties for {url} on attempt {attempt + 1}. Retrying in 1 second.")
+                sleep(1)  # Wait for 1 second
+
+        os.makedirs(os.path.dirname(download_file_path), exist_ok=True)
+        
+        with open(download_file_path, "wb") as download_file:
+            download_file.write(blob_client.download_blob().readall())
+        
+        logger.debug(f"Downloaded blob to {download_file_path}")
+        self.downloaded_paths.append(download_file_path)
 
     def upload_blob(self, file_path: str) -> None:
         if not self.azure_storage_account_key:
