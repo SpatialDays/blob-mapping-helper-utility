@@ -1,11 +1,14 @@
-import os.path
 import logging
+import os.path
+
 logger = logging.getLogger(__name__)
 from typing import Tuple, List
 from urllib.parse import urlparse, urljoin
 from azure.storage.blob import BlobClient
-from azure.core.exceptions import ResourceModifiedError
+from azure.core.exceptions import ResourceModifiedError, ResourceNotFoundError
 from time import sleep
+
+
 # logging.getLogger('azure').setLevel(logging.WARNING)
 
 
@@ -95,34 +98,48 @@ class BlobMappingUtility:
 
         raise ValueError(f"Folder path {folder_path} is not a mounted folder")
 
-    def download_blob(self, url: str) -> None:
+    def download_blob(self, url: str, num_retries=10, retry_timeout_ms=5000) -> None:
+        """
+        Downloads a blob from the given url to the local filesystem.
+        :param url: URL of the blob to download
+        :param num_retries: Number of times to retry downloading the blob if it fails
+        :param retry_timeout_ms: Time to wait between retries in milliseconds
+        :return: None
+
+        :raises ValueError: If azure_storage_account_key is not set
+        :raises ResourceModifiedError: If the blob is still being modified
+        :raises ResourceNotFoundError: If the blob is not found
+
+        """
         if not self.azure_storage_account_key:
             raise ValueError("azure_storage_account_key is required for downloading blobs")
-        
+
         logger.debug(f"Downloading blob from {url}")
         blob_client = BlobClient.from_blob_url(url, credential=self.azure_storage_account_key)
         download_file_path = self.get_mounted_filepath_from_url(url)
-        
+
         if os.path.exists(download_file_path):
             logger.debug(f"Blob already downloaded to {download_file_path}")
             return
 
         # Attempt to fetch blob's properties multiple times.
-        for attempt in range(10):
+        for attempt in range(num_retries):
             try:
                 blob_client.get_blob_properties()
                 break  # If successful, break out of the loop
-            except ResourceModifiedError:
-                if attempt == 9:  # If it's the last attempt
-                    raise ResourceModifiedError
-                logger.warning(f"Failed to fetch blob properties for {url} on attempt {attempt + 1}. Retrying in 1 second.")
-                sleep(1)  # Wait for 1 second
+            except (ResourceModifiedError, ResourceNotFoundError) as e:
+                if attempt == num_retries - 1:  # If it's the last attempt
+                    raise e
+                if e is ResourceModifiedError:
+                    logger.warning(
+                        f"Failed to fetch blob properties for {url} on attempt {attempt + 1}. Retrying in {retry_timeout_ms} millisecond.")
+                else:
+                    logger.warning(
+                        f"Blob {url} not found on attempt {attempt + 1}. Retrying in {retry_timeout_ms} millisecond.")
+                sleep(retry_timeout_ms)
 
         os.makedirs(os.path.dirname(download_file_path), exist_ok=True)
-        
-        with open(download_file_path, "wb") as download_file:
-            download_file.write(blob_client.download_blob().readall())
-        
+
         logger.debug(f"Downloaded blob to {download_file_path}")
         self.downloaded_paths.append(download_file_path)
 
