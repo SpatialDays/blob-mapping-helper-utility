@@ -140,6 +140,9 @@ class BlobMappingUtility:
 
         os.makedirs(os.path.dirname(download_file_path), exist_ok=True)
 
+        with open(download_file_path, "wb") as download_file:
+            download_file.write(blob_client.download_blob().readall())
+
         logger.debug(f"Downloaded blob to {download_file_path}")
         self.downloaded_paths.append(download_file_path)
 
