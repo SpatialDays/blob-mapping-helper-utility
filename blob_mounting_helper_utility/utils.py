@@ -136,7 +136,7 @@ class BlobMappingUtility:
                 else:
                     logger.warning(
                         f"Blob {url} not found on attempt {attempt + 1}. Retrying in {retry_timeout_ms} millisecond.")
-                sleep(retry_timeout_ms)
+                sleep(retry_timeout_ms / 1000.0)
 
         os.makedirs(os.path.dirname(download_file_path), exist_ok=True)
 
